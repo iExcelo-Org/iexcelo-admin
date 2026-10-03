@@ -1,0 +1,149 @@
+/* ── Headings ─────────────────────────────────────────────────────────────── */
+.tiptap h1 { font-size: 2em; font-weight: 700; line-height: 1.3; margin: 1em 0 0.5em; }
+.tiptap h2 { font-size: 1.75em; font-weight: 600; line-height: 1.4; margin: 1em 0 0.5em; }
+.tiptap h3 { font-size: 1.5em; font-weight: 600; line-height: 1.4; margin: 1em 0 0.5em; }
+.tiptap h4 { font-size: 1.25em; font-weight: 500; line-height: 1.4; margin: 1em 0 0.5em; }
+.tiptap h5 { font-size: 1em; font-weight: 500; margin: 1em 0 0.5em; }
+.tiptap h6 { font-size: 0.875em; font-weight: 500; margin: 1em 0 0.5em; color: #666; }
+
+/* ── Paragraphs ───────────────────────────────────────────────────────────── */
+.tiptap p { margin: 0.75em 0; }
+.tiptap p:first-child { margin-top: 0; }
+.tiptap p:last-child { margin-bottom: 0; }
+
+/* ── Blockquotes ──────────────────────────────────────────────────────────── */
+.tiptap blockquote {
+  padding: 0.5em 1em;
+  margin: 1em 0;
+  border-left: 4px solid #ccc;
+  color: #555;
+  font-style: italic;
+  background-color: #f9f9f9;
+}
+
+/* ── Lists ────────────────────────────────────────────────────────────────── */
+.tiptap ol,
+.tiptap ul { margin: 1em 0; padding-left: 2em; }
+.tiptap ol { list-style-type: decimal; }
+.tiptap ul { list-style-type: disc; }
+.tiptap ol li,
+.tiptap ul li { margin: 0.5em 0; }
+.tiptap ol ol,
+.tiptap ol ul,
+.tiptap ul ol,
+.tiptap ul ul { margin: 0.5em 0 0.5em 1.5em; list-style-type: circle; }
+
+/* ── Inline formatting ────────────────────────────────────────────────────── */
+.tiptap strong { font-weight: bold; }
+.tiptap em { font-style: italic; }
+
+/* ── Code ─────────────────────────────────────────────────────────────────── */
+.tiptap pre {
+  padding: 1em;
+  background-color: #f5f5f5;
+  color: #333;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+.tiptap code {
+  background-color: #f5f5f5;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* ── Horizontal rule ──────────────────────────────────────────────────────── */
+.tiptap hr { border: 0; border-top: 1px solid #ddd; margin: 1.5em 0; }
+
+/* ── Links ────────────────────────────────────────────────────────────────── */
+.tiptap a { color: #3498db; text-decoration: none; }
+.tiptap a:hover { text-decoration: underline; }
+
+/* ── Tables ───────────────────────────────────────────────────────────────── */
+
+/* TipTap wraps every table in .tableWrapper for overflow control */
+.tiptap .tableWrapper {
+  overflow-x: auto;
+  margin: 1.25em 0;
+  border-radius: 8px;
+  border: 1px solid #E4E7EC;
+  /* Prevent the table's own margin from doubling */
+}
+
+.tiptap .tableWrapper > table {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+}
+
+.tiptap table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25em 0;
+  font-size: 0.9375em;
+}
+
+.tiptap th,
+.tiptap td {
+  padding: 9px 13px;
+  border: 1px solid #E4E7EC;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+  /* Allow paragraphs inside cells to breathe */
+  line-height: 1.5;
+}
+
+/* Paragraphs inside table cells */
+.tiptap td p,
+.tiptap th p {
+  margin: 0.35em 0;
+}
+.tiptap td p:first-child,
+.tiptap th p:first-child { margin-top: 0; }
+.tiptap td p:last-child,
+.tiptap th p:last-child { margin-bottom: 0; }
+
+.tiptap th {
+  background-color: #F9FAFB;
+  font-weight: 600;
+  color: #344054;
+  white-space: nowrap;
+}
+
+.tiptap tr:nth-child(even) td {
+  background-color: #FAFAFA;
+}
+
+/* Selected cell — shown when the user ctrl/shift-clicks cells in the editor */
+.tiptap td.selectedCell,
+.tiptap th.selectedCell {
+  background-color: #DBEDFF !important;
+  outline: 1.5px solid #007FFF;
+  outline-offset: -1.5px;
+}
+
+/* Cursor row highlight */
+.tiptap tr:has(td.selectedCell),
+.tiptap tr:has(th.selectedCell) {
+  background-color: transparent;
+}
+
+/* ── Images ───────────────────────────────────────────────────────────────── */
+.tiptap img {
+  max-width: min(100%, 280px);
+  max-height: 200px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  margin: 0.5em 0;
+}
+
+/* ── Text alignment helpers ───────────────────────────────────────────────── */
+.tiptap .align-left   { text-align: left; }
+.tiptap .align-center { text-align: center; }
+.tiptap .align-right  { text-align: right; }

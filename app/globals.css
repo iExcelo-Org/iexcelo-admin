@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+@plugin "tailwind-scrollbar-hide";
+@import "./tiptap.css";
+@import "katex/dist/katex.min.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --highlight: oklch(0.852 0.199 91.936);
+  --brand: oklch(0.623 0.214 259.815);
+
+  /* shadcn design tokens — tuned to project palette */
+  --radius: 0.5rem;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --popover: #ffffff;
+  --popover-foreground: #101828;
+  --primary: #007FFF;
+  --primary-foreground: #ffffff;
+  --secondary: #F9FAFB;
+  --secondary-foreground: #344054;
+  --muted: #F9FAFB;
+  --muted-foreground: #667085;
+  --accent: #F0F7FF;
+  --accent-foreground: #344054;
+  --destructive: #D42620;
+  --border: #D0D5DD;
+  --input: #D0D5DD;
+  --ring: #007FFF;
+}
+
+.dark {
+  --background: #0d0d0d;
+  --foreground: #fafafa;
+  --card: #1a1a1a;
+  --card-foreground: #fafafa;
+  --popover: #1a1a1a;
+  --popover-foreground: #fafafa;
+  --primary: #007FFF;
+  --primary-foreground: #ffffff;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a3a3a3;
+  --accent: #1a2d4d;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --border: #404040;
+  --input: #404040;
+  --ring: #007FFF;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-brand: var(--brand);
+  --color-highlight: var(--highlight);
+
+  /* shadcn color tokens */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* radius scale */
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #808080;
+  scroll-behavior: smooth !important;
+}
+
+.no-scrollbar {
+  scrollbar-width: none !important;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input:not([type="checkbox"]):focus {
+  outline: 0;
+  border-color: #007fff;
+}
+
+.gradients-subtle-hue-2 {
+  background: linear-gradient(180deg, #9146ff 0%, #6209e5 100%);
+}
+
+.gradients-subtle-hue-5 {
+  background: linear-gradient(180deg, #35a5ee 0%, #1264d6 100%);
+}
+
+.gradients-subtle-hue-9 {
+  background: linear-gradient(112deg, #b9953b 0%, #e5af24 71.46%);
+}
+
+.gradients-linear-grey {
+  background: linear-gradient(180deg, #fff 0%, #f3f5f7 100%);
+}
+
+/* Force .react-datepicker-wrapper to take full width */
+.react-datepicker-wrapper,
+.react-datepicker__input-container {
+  width: 100% !important;
+}
+
+.react-datepicker__input-container input {
+  width: 100% !important;
+  box-sizing: border-box;
+}
+
+@keyframes pulse-bg {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.pulse {
+  animation: pulse-bg 1.5s ease-in-out infinite;
+}
+
+/* dark mode highlight/brand overrides */
+.dark {
+  --highlight: oklch(0.852 0.199 91.936);
+  --brand: oklch(0.707 0.165 254.624);
+}
