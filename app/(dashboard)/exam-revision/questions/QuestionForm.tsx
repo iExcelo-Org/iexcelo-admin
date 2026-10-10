@@ -406,12 +406,10 @@ export default function QuestionForm({ editQuestion }: QuestionFormProps) {
         return;
       }
     }
-    if (["fill_in_the_blank", "short_answer", "essay"].includes(data.type)) {
+    if (["fill_in_the_blank", "short_answer"].includes(data.type)) {
       if (!(data.correctAnswerText ?? "").trim()) {
         const label =
-          data.type === "essay"
-            ? "model answer"
-            : data.type === "fill_in_the_blank"
+          data.type === "fill_in_the_blank"
             ? "correct answer"
             : "at least one keyword";
         toast.error(`Please provide ${label}`);
@@ -487,7 +485,6 @@ export default function QuestionForm({ editQuestion }: QuestionFormProps) {
   const showTextAnswer = [
     "fill_in_the_blank",
     "short_answer",
-    "essay",
   ].includes(questionType);
   const isMultiResp = questionType === "multiple_response";
 
