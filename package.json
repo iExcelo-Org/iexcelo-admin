@@ -15,6 +15,7 @@
     "@faker-js/faker": "^10.6.0",
     "@hookform/resolvers": "^5.4.0",
     "@iconify/react": "^6.0.2",
+    "@opennextjs/cloudflare": "^1.20.17",
     "@platejs/ai": "^53.3.3",
     "@platejs/basic-nodes": "^53.0.0",
     "@platejs/basic-styles": "^53.0.0",
@@ -125,6 +126,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.162.0"
   }
 }
