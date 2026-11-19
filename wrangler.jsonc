@@ -1,0 +1,15 @@
+// Production config for the main site (iexcelo.com). Used when main is pushed.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "iexcelo-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "routes": [
+    { "pattern": "iexcelo.com", "custom_domain": true },
+    { "pattern": "www.iexcelo.com", "custom_domain": true }
+  ],
+
+  "observability": { "enabled": true }
+}
