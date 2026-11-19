@@ -40,8 +40,10 @@ jobs:
     needs: lint
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    # main uses the production environment and staging uses staging. Every other branch is a
+    # preview and uses the preview environment, so it never touches staging's settings.
     environment:
-      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || github.ref == 'refs/heads/staging' && 'staging' || 'preview' }}
       url: ${{ steps.target.outputs.url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -136,11 +138,13 @@ jobs:
             const mine = comments.data.find(c => c.body && c.body.includes(marker));
             if (!mine) await github.rest.issues.createComment({ owner, repo, issue_number: context.issue.number, body });
 
+  # GitHub runs delete events from the default branch, so the preview environment allows every
+  # branch. main and staging are never cleaned up here.
   cleanup:
     name: Delete preview of deleted branch
-    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref != 'main'
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref != 'main' && github.event.ref != 'staging'
     runs-on: ubuntu-latest
-    environment: staging
+    environment: preview
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
