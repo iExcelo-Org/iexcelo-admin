@@ -1,23 +1,30 @@
-name: Frontend =::= Lint & Deploy
-
-# Same file in both frontend repos.
-# staging branch -> wrangler.staging.jsonc (staging Worker)
-# main branch    -> wrangler.jsonc         (production Worker)
+name: Admin =::= Lint, Deploy & Previews
 
 on:
   push:
-    branches: [main, staging]
+    branches: ["**"]
   pull_request:
-    branches: [main, staging]
+    types: [opened, reopened]
+  delete:
   workflow_dispatch:
 
+env:
+  PREVIEW_DOMAIN: admin.iexcelo.com
+  ZONE_NAME: iexcelo.com
+
 concurrency:
-  group: frontend-${{ github.ref }}
+  group: admin-${{ github.event_name == 'delete' && github.event.ref || github.head_ref || github.ref_name }}
   cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
 
 jobs:
   lint:
     name: Lint
+    if: github.event_name != 'delete'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,17 +36,16 @@ jobs:
       - run: npm run lint --if-present
 
   deploy:
-    name: Deploy to Cloudflare (${{ github.ref_name }})
-    runs-on: ubuntu-latest
+    name: Deploy (${{ github.ref_name }})
     needs: lint
-    # Only the main and staging branches themselves deploy: never PRs or other branches.
-    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging') && github.event_name != 'pull_request'
-    # GitHub environments hold each environment's settings and can be locked to one branch.
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      url: ${{ steps.target.outputs.url }}
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      WRANGLER_CONFIG: ${{ github.ref == 'refs/heads/main' && 'wrangler.jsonc' || 'wrangler.staging.jsonc' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,8 +54,27 @@ jobs:
           cache: npm
       - run: npm ci
 
-      # Every Variable in this GitHub environment (NEXT_PUBLIC_API_URL and so on) becomes
-      # a line in .env.production. Next bakes NEXT_PUBLIC_* values in at build time.
+      # main uses wrangler.jsonc as is. Every other branch gets its own Worker and hostname,
+      # written to wrangler.preview.json (never committed).
+      # jq reads wrangler.jsonc, so keep it free of comments and trailing commas.
+      - name: Work out where this branch deploys
+        id: target
+        run: |
+          BASE=$(jq -r .name wrangler.jsonc)
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            echo "config=wrangler.jsonc" >> "$GITHUB_OUTPUT"
+            echo "url=https://$(jq -r '.routes[0].pattern' wrangler.jsonc)" >> "$GITHUB_OUTPUT"
+          else
+            SLUG=$(echo "$GITHUB_REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-40 | sed -E 's/-+$//')
+            HOST="$SLUG.$PREVIEW_DOMAIN"
+            jq --arg n "$BASE-$SLUG" --arg h "$HOST" \
+              '.name = $n | .routes = [{ "pattern": $h, "custom_domain": true }]' wrangler.jsonc > wrangler.preview.json
+            echo "config=wrangler.preview.json" >> "$GITHUB_OUTPUT"
+            echo "url=https://$HOST" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Every GitHub Variable in this environment (NEXT_PUBLIC_API_URL and so on) becomes a line
+      # in .env.production. Next bakes NEXT_PUBLIC_* values into the build.
       - name: Write environment file
         env:
           VARS_JSON: ${{ toJSON(vars) }}
@@ -58,7 +83,89 @@ jobs:
           echo "Variables written: $(cut -d= -f1 .env.production | tr '\n' ' ')"
 
       - name: Build
-        run: npx opennextjs-cloudflare build --config="$WRANGLER_CONFIG"
+        run: npx opennextjs-cloudflare build --config="${{ steps.target.outputs.config }}"
 
       - name: Deploy
-        run: npx opennextjs-cloudflare deploy --config="$WRANGLER_CONFIG"
+        run: npx opennextjs-cloudflare deploy --config="${{ steps.target.outputs.config }}"
+
+      # Server-only secrets, from the environment secret
+      # WORKER_SECRETS_JSON, e.g. {"MY_SECRET":"..."}. Skipped when that secret is not set.
+      - name: Set server-side secrets on the Worker
+        env:
+          WORKER_SECRETS_JSON: ${{ secrets.WORKER_SECRETS_JSON }}
+        run: |
+          if [ -z "$WORKER_SECRETS_JSON" ]; then echo "No server secrets for this site."; exit 0; fi
+          F="$RUNNER_TEMP/worker-secrets.json"
+          printf '%s' "$WORKER_SECRETS_JSON" > "$F"
+          npx wrangler secret bulk "$F" --config "${{ steps.target.outputs.config }}"
+          rm -f "$F"
+
+      - name: Comment the preview URL on open pull requests
+        if: github.ref != 'refs/heads/main'
+        uses: actions/github-script@v7
+        env:
+          URL: ${{ steps.target.outputs.url }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prs = await github.rest.pulls.list({ owner, repo, state: 'open', head: `${owner}:${context.ref.replace('refs/heads/', '')}` });
+            const marker = '<!-- preview-url -->';
+            const body = `${marker}\nPreview: ${process.env.URL}\nCommit: ${context.sha.slice(0, 7)}`;
+            for (const pr of prs.data) {
+              const comments = await github.rest.issues.listComments({ owner, repo, issue_number: pr.number });
+              const mine = comments.data.find(c => c.body && c.body.includes(marker));
+              if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+              else await github.rest.issues.createComment({ owner, repo, issue_number: pr.number, body });
+            }
+
+  # A PR opened after the branch was already pushed: post the URL straight away.
+  pr-comment:
+    name: Comment preview URL
+    if: github.event_name == 'pull_request' && github.head_ref != 'main' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = context.payload.pull_request.head.ref;
+            const slug = branch.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+            const marker = '<!-- preview-url -->';
+            const body = `${marker}\nPreview: https://${slug}.${process.env.PREVIEW_DOMAIN}\n(Updates on every push to \`${branch}\`.)`;
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number: context.issue.number });
+            const mine = comments.data.find(c => c.body && c.body.includes(marker));
+            if (!mine) await github.rest.issues.createComment({ owner, repo, issue_number: context.issue.number, body });
+
+  cleanup:
+    name: Delete preview of deleted branch
+    if: github.event_name == 'delete' && github.event.ref_type == 'branch' && github.event.ref != 'main'
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete the branch's Worker and its certificate
+        env:
+          BRANCH: ${{ github.event.ref }}
+        run: |
+          BASE=$(jq -r .name wrangler.jsonc)
+          SLUG=$(echo "$BRANCH" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-40 | sed -E 's/-+$//')
+          HOST="$SLUG.$PREVIEW_DOMAIN"
+
+          echo "Deleting Worker $BASE-$SLUG"
+          npx --yes wrangler@4 delete --name "$BASE-$SLUG" --force || echo "No Worker to delete."
+
+          # Cloudflare keeps a custom domain's certificate after the domain is removed. Delete the one
+          # whose only hostname is this preview's, never anything else.
+          API=https://api.cloudflare.com/client/v4
+          AUTH="Authorization: Bearer $CLOUDFLARE_API_TOKEN"
+          ZONE_ID=$(curl -fsS -H "$AUTH" "$API/zones?name=$ZONE_NAME" | jq -r '.result[0].id')
+          PACKS=$(curl -fsS -H "$AUTH" "$API/zones/$ZONE_ID/ssl/certificate_packs?status=all&per_page=200" \
+            | jq -r --arg h "$HOST" '.result[] | select(.type == "advanced" and .hosts == [$h]) | .id')
+          if [ -z "$PACKS" ]; then echo "No certificate found for $HOST."; fi
+          for id in $PACKS; do
+            echo "Deleting certificate $id for $HOST"
+            curl -fsS -X DELETE -H "$AUTH" "$API/zones/$ZONE_ID/ssl/certificate_packs/$id" > /dev/null
+          done
