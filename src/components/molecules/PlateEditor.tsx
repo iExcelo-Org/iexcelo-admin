@@ -1,13 +1,29 @@
 "use client";
 
 import type { FocusEvent } from "react";
+import dynamic from "next/dynamic";
 
-import {
-  PlateEditor as PlateEditorCore,
-  type PlateEditorProps as CoreProps,
-} from "@/components/editor/plate-editor";
+import type { PlateEditorProps as CoreProps } from "@/components/editor/plate-editor";
 
 import type { TDiscussion } from "@/components/editor/plugins/discussion-kit";
+
+// The editor only runs in the browser. Imported normally, the whole Plate kit (diagrams,
+// code highlighting, Word import and export, video players) went into the server bundle of
+// every page that uses InputField, which took the Worker past Cloudflare's size limit.
+// Loading it with ssr: false keeps it out of the server bundle and out of pages that never
+// show an editor.
+const PlateEditorCore = dynamic(
+  () => import("@/components/editor/plate-editor").then((m) => m.PlateEditor),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-busy="true"
+        className="min-h-[204px] animate-pulse rounded-md border border-[#D0D5DD] bg-[#F9FAFB]"
+      />
+    ),
+  },
+);
 
 export type PlateEditorProps = {
   name?: string;
